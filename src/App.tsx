@@ -1,37 +1,56 @@
 import { useState } from "react";
 import useOpenAIChat from "./shared/openai/hooks/use-openai-chat";
-import gifFile from './bronya.gif'; // Import the GIF file
-import './App.css';
+import { Canvas, useFrame } from '@react-three/fiber'
+
+
+
+function Box(props) {
+  // This reference will give us direct access to the mesh
+  const meshRef = useRef()
+  // Set up state for the hovered and active state
+  const [hovered, setHover] = useState(false)
+  const [active, setActive] = useState(false)
+  // Subscribe this component to the render-loop, rotate the mesh every frame
+  useFrame((state, delta) => (meshRef.current.rotation.x += delta))
+  // Return view, these are regular three.js elements expressed in JSX
+  return (
+    <mesh
+      {...props}
+      ref={meshRef}
+      scale={active ? 1.5 : 1}
+      onClick={(event) => setActive(!active)}
+      onPointerOver={(event) => setHover(true)}
+      onPointerOut={(event) => setHover(false)}>
+      <boxGeometry args={[1, 1, 1]} />
+      <meshStandardMaterial color={hovered ? 'hotpink' : 'orange'} />
+    </mesh>
+  )
+}
+
 
 function App() {
   const [completeText, messages] = useOpenAIChat();
   const [userInput, setUserInput] = useState('');
 
-  const handleKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === 'Enter') {
-      event.preventDefault(); // Prevents form submission
-      completeText(userInput);
-    }
-  }
-
   return (
-    <div className="app-container">
-      <img src={gifFile} className="gif-player"/>
-      <div className="chat-window">
-        <div className="message-area">
+      <div>
+        <div style={{display: 'flex', flexDirection: 'column', gap: '2.5rem'}}>
           {messages.filter((val) => val.role !== 'system').map(({content, role}, idx) => 
             typeof content === 'string' 
-            ? <p key={idx} className={role === 'user' ? 'user-message' : 'helper-message'}>{role === 'user' ? 'You' : 'DnD Helper'}: {content}</p> 
+            ? <p key={idx}>{role === 'user' ? 'You' : 'DnD Helper'}: {content}</p> 
             : '')}
         </div>
-        <div className="chat-input-area">
-          <input className="chat-input" onChange={(e) => {setUserInput(e.target.value)}} onKeyDown={handleKeyDown}/>
-          <button className="send-button" onClick={() => {
-            completeText(userInput)
-          }}>&rarr;</button>
-        </div>
+        <input onChange={(e) => {setUserInput(e.target.value)}}/>
+        <button onClick={() => {
+          completeText(userInput)
+        }}>SEND BLYAT</button>
+        <Canvas>
+          <ambientLight />
+          <pointLight position={[10, 10, 10]} />
+          <Box position={[-1.2, 0, 0]} />
+          <Box position={[1.2, 0, 0]} />
+        </Canvas>
       </div>
-    </div>
   )
 }
 
